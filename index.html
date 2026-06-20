@@ -1149,7 +1149,7 @@ async function sendChat(chatImgAttach){
 async function renderFeedPage(){
   const content=document.getElementById("content-area");
   content.innerHTML=`<div class="fade-up">
-    ${pageHeaderHtml('message-square-text','โพสต์','แชร์ความคิดเห็น เหมือน Reddit หรือ X')}
+    ${pageHeaderHtml('message-square-text','โพสต์','แชร์ความคิดเห็นของคุณ)}
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;gap:10px;">${avatar(currentUser.username,currentUser.role)}<textarea class="input" id="feed-text" rows="2" placeholder="มีอะไรอยากเล่าให้เพื่อน ๆ ฟังไหม?" style="flex:1;border:none;background:var(--paper-deep);padding:10px 12px;"></textarea></div>
       ${attachButtonHtml('feed-img-btn','feed-img-input','feed-img-preview','แนบรูปภาพ')}
