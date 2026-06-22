@@ -215,6 +215,26 @@
   .poll-choices-list { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
   .poll-choice-row { display:flex; gap:6px; align-items:center; }
   .poll-choice-row input { flex:1; }
+
+  /* ---------- Confirm Dialog ---------- */
+  .confirm-overlay { position:fixed; inset:0; background:rgba(8,10,20,.55); z-index:400; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeIn .15s ease; }
+  @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+  .confirm-box { background:var(--paper); border:1.5px solid var(--line); border-radius:18px; padding:24px 22px 18px; max-width:340px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,.22); animation:popIn .2s ease; }
+  .confirm-icon-wrap { width:46px; height:46px; border-radius:14px; background:#FBEAE8; display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+  body.dark-mode .confirm-icon-wrap { background:rgba(224,92,92,.15); }
+  .confirm-title { font-family:'Kanit',sans-serif; font-weight:700; font-size:16px; color:var(--ink); margin:0 0 6px; }
+  .confirm-sub { font-size:13.5px; color:var(--ink-soft); margin:0 0 20px; line-height:1.6; }
+  .confirm-btns { display:flex; gap:8px; }
+  .confirm-btns .btn-cancel { flex:1; padding:10px 0; border-radius:10px; border:1.5px solid var(--line); background:transparent; color:var(--ink-soft); font-weight:600; font-size:14px; font-family:'Kanit',sans-serif; }
+  .confirm-btns .btn-delete { flex:1; padding:10px 0; border-radius:10px; border:none; background:var(--danger); color:#fff; font-weight:700; font-size:14px; font-family:'Kanit',sans-serif; }
+  .confirm-btns .btn-delete:hover { filter:brightness(1.08); }
+  body.dark-mode .confirm-box { background:#1A1D26; }
+
+  /* ---------- Chat delete button ---------- */
+  .chat-delete-btn { opacity:0; transition:opacity .15s; border:none; background:rgba(192,57,43,.13); color:var(--danger); border-radius:7px; padding:3px 6px; display:inline-flex; align-items:center; font-size:11px; gap:3px; font-family:'Sarabun',sans-serif; font-weight:600; cursor:pointer; flex-shrink:0; margin-top:3px; }
+  .chat-bubble-wrap:hover .chat-delete-btn { opacity:1; }
+  .chat-row.mine .chat-bubble-wrap:hover .chat-delete-btn { opacity:1; }
+  body.dark-mode .chat-delete-btn { background:rgba(224,92,92,.18); }
 </style>
 </head>
 <body>
@@ -483,6 +503,29 @@ const ROLE_META = {
 function roleBadge(role){ const m=ROLE_META[role]||ROLE_META.student; return `<span class="badge font-display" style="background:${m.bg};color:${m.fg}">${iconSvg(m.icon,11,m.fg,2.5)}${m.label}</span>`; }
 const AVATAR_COLORS = { admin:"var(--navy)", teacher:"#0E9F6E", student:"var(--blue)" };
 function avatar(name,role,size){ size=size||32; const bg=AVATAR_COLORS[role]||"var(--blue)"; return `<div class="avatar font-display" style="width:${size}px;height:${size}px;background:${bg};font-size:${Math.round(size*.4)}px">${esc((name||"?").slice(0,1).toUpperCase())}</div>`; }
+
+/* ============================== CONFIRM DIALOG ============================== */
+function confirmDelete(opts){
+  // opts: { title, sub, onConfirm }
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-box pop-in">
+      <div class="confirm-icon-wrap">${iconSvg('trash-2',22,'var(--danger)')}</div>
+      <div class="confirm-title">${opts.title||'ยืนยันการลบ'}</div>
+      <p class="confirm-sub">${opts.sub||'รายการนี้จะถูกลบถาวร ไม่สามารถกู้คืนได้'}</p>
+      <div class="confirm-btns">
+        <button class="btn-cancel font-display" id="_conf-cancel">ยกเลิก</button>
+        <button class="btn-delete font-display" id="_conf-ok">ลบเลย</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  renderIcons();
+  const remove = () => overlay.remove();
+  overlay.addEventListener("click", e=>{ if(e.target===overlay) remove(); });
+  document.getElementById("_conf-cancel").addEventListener("click", remove);
+  document.getElementById("_conf-ok").addEventListener("click", ()=>{ remove(); opts.onConfirm(); });
+}
 
 /* ============================== STATE ============================== */
 let currentUser = null;
@@ -1145,7 +1188,9 @@ async function loadAnnouncements(){
     if(items.length===0){ listEl.innerHTML=emptyStateHtml('megaphone','ยังไม่มีประกาศ','เมื่อพี่สภามีประกาศใหม่ จะมาแสดงที่นี่'); renderIcons(); return; }
     listEl.innerHTML=`<div style="display:grid;gap:12px;">${items.map(p=>announceCardHtml(p,isAdmin)).join("")}</div>`;
     renderIcons(); wireLightboxImages(listEl);
-    if(isAdmin) listEl.querySelectorAll("[data-delete-announce]").forEach(btn=>btn.addEventListener("click",async()=>{ await dbDelete("announcements/"+btn.getAttribute("data-delete-announce")); showToast("ลบประกาศแล้ว"); loadAnnouncements(); }));
+    if(isAdmin) listEl.querySelectorAll("[data-delete-announce]").forEach(btn=>btn.addEventListener("click",()=>{
+      confirmDelete({ title:'ลบประกาศนี้?', sub:'ประกาศจะหายถาวร ทุกคนจะมองไม่เห็นอีกต่อไป', onConfirm:async()=>{ await dbDelete("announcements/"+btn.getAttribute("data-delete-announce")); showToast("ลบประกาศแล้ว"); loadAnnouncements(); } });
+    }));
   } catch(e){ console.error(e); listEl.innerHTML=emptyStateHtml('alert-circle','โหลดข้อมูลไม่สำเร็จ','ลองรีเฟรชหน้าใหม่'); renderIcons(); }
 }
 
@@ -1234,7 +1279,9 @@ function qaCardHtml(q,isAdmin){
 }
 
 function wireQACards(items,isAdmin){
-  document.querySelectorAll("[data-delete-q]").forEach(btn=>btn.addEventListener("click",async()=>{ await dbDelete("qa/"+btn.getAttribute("data-delete-q")); showToast("ลบคำถามแล้ว"); loadQuestions(); }));
+  document.querySelectorAll("[data-delete-q]").forEach(btn=>btn.addEventListener("click",()=>{
+    confirmDelete({ title:'ลบคำถามนี้?', sub:'คำถามและคำตอบทั้งหมดจะหายถาวร', onConfirm:async()=>{ await dbDelete("qa/"+btn.getAttribute("data-delete-q")); showToast("ลบคำถามแล้ว"); loadQuestions(); } });
+  }));
   if(!isAdmin)return;
   document.querySelectorAll("[data-answer-btn]").forEach(btn=>{
     btn.addEventListener("click",()=>{
@@ -1285,9 +1332,11 @@ async function renderChatPage(){
     const wasAtBottom=listEl.scrollHeight-listEl.scrollTop-listEl.clientHeight<60;
     if(items.length===0){ listEl.innerHTML=`<div style="margin:auto;">${emptyStateHtml('message-circle','ยังไม่มีข้อความ','เริ่มบทสนทนาแรกของวันนี้กันเลย')}</div>`; }
     else {
-      listEl.innerHTML=items.map(m=>{
+    listEl.innerHTML=items.map(m=>{
         const mine=m.author===currentUser.username, hasImg=!!m.imageUrl;
-        return `<div class="chat-row ${mine?'mine':''}">
+        const isAdmin=currentUser.role==="admin";
+        const canDelete=mine||isAdmin;
+        return `<div class="chat-row ${mine?'mine':''}" data-msg-id="${m.id}">
           ${avatar(m.author,m.role,28)}
           <div class="chat-bubble-wrap">
             <div class="chat-meta"><span class="font-display" style="font-size:12px;font-weight:600;">${esc(m.author)}</span>${roleBadge(m.role)}</div>
@@ -1295,12 +1344,22 @@ async function renderChatPage(){
               ${hasImg?`<img class="chat-bubble-img" src="${m.imageUrl}" data-lightbox-src="${m.imageUrl}" alt="" loading="lazy">`:""}
               ${m.text?`<div style="${hasImg?'padding:7px 5px 2px;':''}">${esc(m.text)}</div>`:""}
             </div>
-            <div class="chat-time">${timeAgo(m.createdAt)}</div>
+            <div style="display:flex;align-items:center;gap:6px;${mine?'justify-content:flex-end;':''}">
+              <div class="chat-time" style="margin-top:0;">${timeAgo(m.createdAt)}</div>
+              ${canDelete?`<button class="chat-delete-btn font-display" data-delete-chat="${m.id}">${iconSvg('trash-2',11,'var(--danger)')} ลบ</button>`:""}
+            </div>
           </div>
         </div>`;
       }).join("");
     }
     renderIcons(); wireLightboxImages(listEl);
+    // wire chat delete buttons
+    listEl.querySelectorAll("[data-delete-chat]").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        const msgId=btn.getAttribute("data-delete-chat");
+        confirmDelete({ title:'ลบข้อความนี้?', sub:'ข้อความจะหายถาวรสำหรับทุกคนในห้องแชท', onConfirm:async()=>{ try{ await dbDelete("chat/"+msgId); }catch(e){console.error(e);showToast("ลบไม่สำเร็จ");} } });
+      });
+    });
     if(wasAtBottom) listEl.scrollTop=listEl.scrollHeight;
   });
 }
@@ -1401,7 +1460,9 @@ function wireFeedCards(items){
     });
   });
   document.querySelectorAll("[data-delete-post]").forEach(btn=>{
-    btn.addEventListener("click",async()=>{ await dbDelete("feedposts/"+btn.getAttribute("data-delete-post")); showToast("ลบโพสต์แล้ว"); loadFeed(); });
+    btn.addEventListener("click",()=>{
+      confirmDelete({ title:'ลบโพสต์นี้?', sub:'โพสต์จะหายถาวร ทุกคนจะมองไม่เห็นอีกต่อไป', onConfirm:async()=>{ await dbDelete("feedposts/"+btn.getAttribute("data-delete-post")); showToast("ลบโพสต์แล้ว"); loadFeed(); } });
+    });
   });
 }
 
@@ -1552,7 +1613,9 @@ function wireTicketAdminControls(items){
     });
   });
   document.querySelectorAll("[data-delete-ticket]").forEach(btn=>{
-    btn.addEventListener("click",async()=>{ await dbDelete("tickets/"+btn.getAttribute("data-delete-ticket")); showToast("ลบเรื่องร้องเรียนแล้ว"); loadTickets(); });
+    btn.addEventListener("click",()=>{
+      confirmDelete({ title:'ลบเรื่องร้องเรียนนี้?', sub:'เรื่องร้องเรียนและสถานะทั้งหมดจะหายถาวร', onConfirm:async()=>{ await dbDelete("tickets/"+btn.getAttribute("data-delete-ticket")); showToast("ลบเรื่องร้องเรียนแล้ว"); loadTickets(); } });
+    });
   });
 }
 
@@ -1690,7 +1753,9 @@ function wirePollCards(items){
     });
   });
   document.querySelectorAll("[data-delete-poll]").forEach(btn=>{
-    btn.addEventListener("click",async()=>{ await dbDelete("polls/"+btn.getAttribute("data-delete-poll")); showToast("ลบโพลแล้ว"); loadPolls(); });
+    btn.addEventListener("click",()=>{
+      confirmDelete({ title:'ลบโพลนี้?', sub:'โพลและผลโหวตทั้งหมดจะหายถาวร', onConfirm:async()=>{ await dbDelete("polls/"+btn.getAttribute("data-delete-poll")); showToast("ลบโพลแล้ว"); loadPolls(); } });
+    });
   });
   document.querySelectorAll("[data-toggle-poll]").forEach(btn=>{
     btn.addEventListener("click",async()=>{
