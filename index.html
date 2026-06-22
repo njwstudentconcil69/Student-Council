@@ -570,7 +570,7 @@ function renderLogin(){
         <form id="login-form" novalidate>
           <div class="field">
             <label class="font-display">ชื่อผู้ใช้</label>
-            <input class="input" id="f-username" placeholder="เช่น Username67" autocomplete="username">
+            <input class="input" id="f-username" placeholder="ตั้งชื่อเล่นของคุณ" autocomplete="username">
           </div>
           <div class="field">
             <label class="font-display">รหัสผ่าน</label>
@@ -609,7 +609,7 @@ function renderLogin(){
           <span>เข้าสู่ระบบด้วย Google</span>
         </button>
       </div>
-      <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin-top:14px;">สีประจำโรงเรียน: น้ำเงิน–เหลือง 💙💛</p>
+      <p style="text-align:center;color:var(--ink-soft);font-size:12px;margin-top:14px;">💙โรงเรียนหนองฮีเจริญวิทย์-NJW💛</p>
     </div>
   </div>`;
 
@@ -1221,7 +1221,7 @@ async function sendChat(chatImgAttach){
 async function renderFeedPage(){
   const content=document.getElementById("content-area");
   content.innerHTML=`<div class="fade-up">
-    ${pageHeaderHtml('message-square-text','โพสต์','แชร์ความคิดเห็น เหมือน Reddit หรือ X')}
+    ${pageHeaderHtml('message-square-text','โพสต์','แชร์ความคิดเห็นของคุณ')}
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;gap:10px;">${avatar(currentUser.username,currentUser.role)}<textarea class="input" id="feed-text" rows="2" placeholder="มีอะไรอยากเล่าให้เพื่อน ๆ ฟังไหม?" style="flex:1;border:none;background:var(--paper-deep);padding:10px 12px;"></textarea></div>
       ${attachButtonHtml('feed-img-btn','feed-img-input','feed-img-preview','แนบรูปภาพ')}
